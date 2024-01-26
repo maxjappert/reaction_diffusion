@@ -1,10 +1,14 @@
 import processing.core.PApplet;
+import processing.data.JSONObject;
+
+import java.io.File;
 
 public class Main extends PApplet {
 
     float[][][] concentration;
     float gridSize;
-    int numCells = 2048;
+    //int height = 2048;
+    float[][][] nextConcentration;
 
     float D_A = 1f;
     float D_B = 0.5f;
@@ -13,50 +17,68 @@ public class Main extends PApplet {
 
     float delta_t = 1.0f;
 
+    JSONObject json;
+    boolean json_exists = false;
+    String json_filename = "data.json";
+
     public void settings() {
-        size(2048, 2048);
+        size(3840, 2160);
     }
 
     public void setup() {
-        concentration = new float[numCells][numCells][2];
-        gridSize = (float) width / numCells;
+        json_exists = new File(json_filename).exists();
 
-        for (int i = 0; i < numCells; i++) {
-            for (int j = 0; j < numCells; j++) {
+        if (json_exists) {
+            json = loadJSONObject("data.json");
+        }
+
+        nextConcentration = new float[height][width][2];
+        concentration = new float[height][width][2];
+        gridSize = (float) width / height;
+
+        for (int i = 0; i < height; i++) {
+            for (int j = 0; j < height; j++) {
                 concentration[i][j] = new float[]{1, 0};
             }
         }
 
-        int startIndex = numCells / 2;
+        placeBlob();
+
+        frameRate(3000);
+    }
+
+    private void placeBlob() {
+        int startIndex = height / 2;
 
         for (int i = startIndex; i < startIndex + 5; i++) {
             for (int j = startIndex; j < startIndex + 5; j++) {
                 concentration[i][j] = new float[]{1, 1};
             }
         }
-
-        frameRate(3000);
     }
 
     public void draw() {
-        for (int i = 0; i < numCells; i++) {
-            for (int j = 0; j < numCells; j++) {
+        if (json_exists) {
+            f = json.getFloat("f", 0.055f);
+            k = json.getFloat("k", 0.062f);
+        }
+
+        loadPixels();
+        for (int i = 0; i < height; i++) {
+            for (int j = 0; j < width; j++) {
                 float A = concentration[i][j][0];
                 float B = concentration[i][j][1];
 
-                stroke(A*255, B*255, 255);
-                fill(A*255, B*255, 255);
-                rect(gridSize*i, gridSize*j, gridSize, gridSize);
+                pixels[j * width + i] = color(A * 255, B * 255, 255);
             }
         }
-
-        float[][][] nextConcentration = new float[numCells][numCells][2];
+        updatePixels();
 
         float maxA = -999;
         float minA = 999;
 
-        for (int i = 0; i < numCells; i++) {
-            for (int j = 0; j < numCells; j++) {
+        for (int i = 0; i < height; i++) {
+            for (int j = 0; j < height; j++) {
                 float A = concentration[i][j][0];
                 float B = concentration[i][j][1];
 
@@ -78,7 +100,7 @@ public class Main extends PApplet {
             //println(minA + ", " + maxA);
         }
 
-        System.arraycopy(nextConcentration, 0, concentration, 0, numCells);
+        System.arraycopy(nextConcentration, 0, concentration, 0, height);
 
         //filter(BLUR);
 
@@ -104,7 +126,7 @@ public class Main extends PApplet {
         }
 
         // Top-right neighbor
-        if (i - 1 >= 0 && j + 1 < numCells) {
+        if (i - 1 >= 0 && j + 1 < width) {
             sum += 0.05f * concentration[i - 1][j + 1][compound];
             counter++;
         }
@@ -116,25 +138,25 @@ public class Main extends PApplet {
         }
 
         // Right neighbor
-        if (j + 1 < numCells) {
+        if (j + 1 < width) {
             sum += 0.2f * concentration[i][j + 1][compound];
             counter++;
         }
 
         // Bottom-left neighbor
-        if (i + 1 < numCells && j - 1 >= 0) {
+        if (i + 1 < height && j - 1 >= 0) {
             sum += 0.05f * concentration[i + 1][j - 1][compound];
             counter++;
         }
 
         // Bottom neighbor
-        if (i + 1 < numCells) {
+        if (i + 1 < height) {
             sum += 0.2f * concentration[i + 1][j][compound];
             counter++;
         }
 
         // Bottom-right neighbor
-        if (i + 1 < numCells && j + 1 < numCells) {
+        if (i + 1 < height && j + 1 < width) {
             sum += 0.05f * concentration[i + 1][j + 1][compound];
             counter++;
         }
@@ -142,6 +164,49 @@ public class Main extends PApplet {
 
         return sum;// / numTerms;
     }
+
+    public void keyPressed() {
+        float increment = 0.01f; // Adjust this value as needed for the rate of change
+        float k_increment = 0.0001f;
+
+        switch(key) {
+            case 'q':
+                D_A += increment;
+                break;
+            case 'a':
+                D_A = max(0, D_A - increment); // Prevents the variable from going negative
+                break;
+            case 'w':
+                D_B += increment;
+                break;
+            case 's':
+                D_B = max(0, D_B - increment);
+                break;
+            case 'e':
+                f += increment;
+                break;
+            case 'd':
+                f = max(0, f - increment);
+                break;
+            case 'r':
+                k += k_increment;
+                break;
+            case 'f':
+                k = k - k_increment;
+                break;
+            case 't':
+                delta_t += increment;
+                break;
+            case 'g':
+                delta_t = max(0, delta_t - increment);
+                break;
+        }
+
+        if (keyCode == ENTER) {
+            placeBlob();
+        }
+    }
+
 
     public static void main(String[] args) {
         PApplet.main("Main");
