@@ -37,7 +37,7 @@ public class Main extends PApplet {
         gridSize = (float) width / height;
 
         for (int i = 0; i < height; i++) {
-            for (int j = 0; j < height; j++) {
+            for (int j = 0; j < width; j++) {
                 concentration[i][j] = new float[]{1, 0};
             }
         }
@@ -69,7 +69,7 @@ public class Main extends PApplet {
                 float A = concentration[i][j][0];
                 float B = concentration[i][j][1];
 
-                pixels[j * width + i] = color(A * 255, B * 255, 255);
+                pixels[i * width + j] = color(A * 255, B * 255, 255);
             }
         }
         updatePixels();
@@ -78,7 +78,7 @@ public class Main extends PApplet {
         float minA = 999;
 
         for (int i = 0; i < height; i++) {
-            for (int j = 0; j < height; j++) {
+            for (int j = 0; j < width; j++) {
                 float A = concentration[i][j][0];
                 float B = concentration[i][j][1];
 
